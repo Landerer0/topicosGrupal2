@@ -1,0 +1,15 @@
+# Ignorar la carpeta .vscode
+.vscode
+genomaOriginal
+sdsl-lite
+
+# Ignorar ejecutable
+a.exe
+proyecto.exe
+
+# Ignorar archivos
+g1.fna
+g2.fna
+g3.fna
+g4.fna
+g5.fna
