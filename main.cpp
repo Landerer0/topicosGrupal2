@@ -8,7 +8,7 @@
 #include <cstring>
 
 #include <chrono>
-#include <omp.h>
+//#include <omp.h>
 
 #include "Hyperloglog.hpp"
 
@@ -18,11 +18,10 @@ using namespace std::chrono;
 const unsigned int Buckets = 16;
 const unsigned int k = 31; //tamaño del kmer
 
-const int numThreads = 5; // 80-31 = 49, 49%7=0 division exacta
+//const int numThreads = 5; // 80-31 = 49, 49%7=0 division exacta //OMP
 
 void lectura(Hyperloglog &hll, ifstream file){
-  int linea = 0;
-  omp_set_num_threads(numThreads);  
+  //omp_set_num_threads(numThreads);  // OMP
   ull progreso = 0;
 
   for(string line; getline(file, line);){
@@ -32,37 +31,16 @@ void lectura(Hyperloglog &hll, ifstream file){
 
     //!OPCION CON PARALELISMO
     // cada iteracion representa a un kmer
-    #pragma omp parallel for
+    //#pragma omp parallel for // OMP
     for(int i = 0; i <= line.size() - k; i++){
+      if(line.size()<k) break;
+      //cout << i << " " << line.size() << endl;
       string aux = line.substr(i,k);  
       hll.update(aux);
     }
   }
 
   return;
-}
-
-template <typename T> T readStream(unordered_set<string> &gt, ifstream file, unsigned int size){
-  T estimator(size);
-  int linea = 0;
-  omp_set_num_threads(numThreads);  
-  ull progreso = 0;
-
-  for(string line; getline(file, line);){
-
-    // Tipo barra de progreso
-    progreso++;
-    if(progreso%100000==0) cout << progreso << endl;
-
-    //!OPCION CON PARALELISMO
-    // cada iteracion representa a un kmer
-    #pragma omp parallel for
-    for(int i = 0; i <= line.size() - k; i++){
-      string aux = line.substr(i,k);  
-      estimator.update(aux);
-    }
-  }
-  return estimator;
 }
 
 int main(int argc, char *argv[]) {

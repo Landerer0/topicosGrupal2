@@ -1,14 +1,24 @@
 #include "Hyperloglog.hpp"
 #include <cstring>
 
-vector<mutex*> bucketMutexHll; // un mutex asociado a cada bucket del sketch
+//vector<mutex*> bucketMutexHll; // un mutex asociado a cada bucket del sketch
 
 Hyperloglog::Hyperloglog(unsigned int M){
+  //sketch.assign(M, 0);
   this->M = M;
-  sketch.assign(M, 0);
-  bucketMutexHll.assign(M,new std::mutex);
-  log_m = (int)ceil(log2(M));
+  //bucketMutexHll.assign(M,new std::mutex);
+  log_m = (int)ceil(log2(M)); 
   two_64 = (double)pow(2,64);
+
+  //cout << sketch << endl;
+  sketch.resize(M);
+  // 64-log_m son los bits que cuentan la cantidad de ceros
+  // se necesitan log2(64-log_m) bits para ello
+  //sketch.width(ceil(log2(64-log_m)));
+  sdsl::util::set_to_value(sketch,0); // deberia establecer todos los valores en 0
+  //cout << sketch << endl;
+  //cout << sketch.size() << endl;
+
 }
 
 Hyperloglog::~Hyperloglog(){ 
@@ -28,9 +38,10 @@ void Hyperloglog::update(string &kmer){
   // este if es debido a que en mi computador la funcion puede dar valores inadecuados para la operación
   // fue testeado y a otros compañeros la función siempre les daba el rango correcto
   if(b==0) first_one_bit = 64;
-  bucketMutexHll.at(p)->lock();
-  sketch[p] = max(sketch[p], first_one_bit);
-  bucketMutexHll.at(p)->unlock();
+  //bucketMutexHll.at(p)->lock();
+  sketch[p] = max((uc)sketch[p], first_one_bit);
+  //sketch[p] = max(sketch[p], first_one_bit);
+  //bucketMutexHll.at(p)->unlock();
 }
 
 uc Hyperloglog::bucket_value(unsigned int i){
@@ -38,12 +49,21 @@ uc Hyperloglog::bucket_value(unsigned int i){
 }
 
 ull Hyperloglog::estimate(){
+  // for(int i=0;i<sketch.size();i++){
+  //   cout << (int)sketch.at(i) << " ";
+  // }
+  // cout << endl;
+
+  //cout << sketch << endl;
+  //cout << sketch.size() << endl;
   double Z = 0.0;
   unsigned int V = 0;
 
   for(int i=0;i<M;i++){
-    Z += pow(2,-sketch.at(i));
-    if(sketch.at(i)==0) V++;
+    // Z += pow(2,-sketch.at(i));
+    // if(sketch.at(i)==0) V++;
+    Z += pow(2,-(uc)sketch[i]);
+    if((uc)sketch[i]==0) V++;
   }
 
   double E = (this->M * this->M * alpha_m())/Z;
@@ -59,5 +79,6 @@ ull Hyperloglog::estimate(){
 
 void Hyperloglog::merge(Hyperloglog &hll){
   for(int i = 0; i < M; i++)
-    sketch[i] = max(sketch[i], hll.bucket_value(i));
+    sketch[i] = max((uc)sketch[i], hll.bucket_value(i));
+    //sketch[i] = max(sketch[i], hll.bucket_value(i));
 }

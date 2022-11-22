@@ -2,6 +2,7 @@
 .vscode
 genomaOriginal
 sdsl-lite
+pruebas
 
 # Ignorar ejecutable
 a.exe
