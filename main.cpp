@@ -20,7 +20,7 @@ const unsigned int k = 31; //tamaño del kmer
 
 const int numThreads = 5; // 80-31 = 49, 49%7=0 division exacta
 
-void lectura(Hyperloglog &hll, ifstream &file){
+void lectura(Hyperloglog &hll, ifstream file){
   int linea = 0;
   omp_set_num_threads(numThreads);  
   ull progreso = 0;
@@ -42,26 +42,26 @@ void lectura(Hyperloglog &hll, ifstream &file){
   return;
 }
 
-template <typename T> T readStream(unordered_set<string> &gt, ifstream &file, unsigned int size){
-    T estimator(size);
-    int linea = 0;
-    omp_set_num_threads(numThreads);  
-    ull progreso = 0;
+template <typename T> T readStream(unordered_set<string> &gt, ifstream file, unsigned int size){
+  T estimator(size);
+  int linea = 0;
+  omp_set_num_threads(numThreads);  
+  ull progreso = 0;
 
-    for(string line; getline(file, line);){
+  for(string line; getline(file, line);){
 
-      // Tipo barra de progreso
-      progreso++;
-      if(progreso%100000==0) cout << progreso << endl;
+    // Tipo barra de progreso
+    progreso++;
+    if(progreso%100000==0) cout << progreso << endl;
 
-      //!OPCION CON PARALELISMO
-      // cada iteracion representa a un kmer
-      #pragma omp parallel for
-      for(int i = 0; i <= line.size() - k; i++){
-        string aux = line.substr(i,k);  
-        estimator.update(aux);
-      }
+    //!OPCION CON PARALELISMO
+    // cada iteracion representa a un kmer
+    #pragma omp parallel for
+    for(int i = 0; i <= line.size() - k; i++){
+      string aux = line.substr(i,k);  
+      estimator.update(aux);
     }
+  }
   return estimator;
 }
 
@@ -103,31 +103,50 @@ vector<long long> operations(Hyperloglog &hll1, Hyperloglog &hll2){
 }
 
 int main(int argc, char *argv[]) {
+  //! Falta agregar lectura infinita de argumentos (archivos)
+  vector<Hyperloglog> hll;
 
-    ifstream file1(argv[1]); //el archivo se entrega como argumento
-    ifstream file2(argv[2]); //el archivo se entrega como argumento
+  //ifstream file1(argv[1]); //el archivo se entrega como argumento
+  //ifstream file2(argv[2]); //el archivo se entrega como argumento
 
+  for(int i=0; i<argc-1;i++){ 
+    Hyperloglog hllAux(Buckets);
+    hll.push_back(hllAux);
     auto start = high_resolution_clock::now();
-    if(argc < 4){
-      Hyperloglog hll1(Buckets);
-      Hyperloglog hll2(Buckets);
-      lectura(hll1,file1); // lectura del primer archivo
-      lectura(hll2,file2); // lectura del segundo archivo
-      
-      // calculo de estadisticas de las estructuras
-      vector<long long> result = operations(hll1,hll2) ;
-
-      cout << "Estimacion HLL: "  << result.at(0)  << " " << result.at(1) << endl;
-      cout << "Merge HLL: " << result.at(2) << endl;
-      cout << "Intersection HLL: " << result.at(3) << endl;
-      cout << "Set Difference HLL: '1' " << result.at(4) << " '2' " << result.at(5) << endl;
-      cout << "Symmetric Difference HLL: " << result.at(6) << endl;
-      cout << "Jaccard HLL: " << ((double)result.at(3)/(double)result.at(2)) << endl;
-    }
+    lectura(hll.at(i),ifstream(argv[i+1]));
+    cout << "Estimacion HLL" << i+1 << ": "  << hll.at(i).estimate() << endl;
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
-    cout << "Time taken by function: "
-         << (double)duration.count()/1000.0 << " seconds" << endl;
+    cout << "Tiempo ocupado por HLL" << i+1 << " "
+          << (double)duration.count() << " [ms]" << endl;
+  }
+  
 
-    return 0;
+
+  // auto start = high_resolution_clock::now();
+  // if(argc < 4){
+  //   Hyperloglog hll1(Buckets);
+  //   Hyperloglog hll2(Buckets);
+  //   lectura(hll1,file1); // lectura del primer archivo
+  //   lectura(hll2,file2); // lectura del segundo archivo
+    
+
+  //   /*
+  //   // calculo de estadisticas de las estructuras
+  //   vector<long long> result = operations(hll1,hll2) ;
+
+  //   cout << "Estimacion HLL: "  << result.at(0)  << " " << result.at(1) << endl;
+  //   cout << "Merge HLL: " << result.at(2) << endl;
+  //   cout << "Intersection HLL: " << result.at(3) << endl;
+  //   cout << "Set Difference HLL: '1' " << result.at(4) << " '2' " << result.at(5) << endl;
+  //   cout << "Symmetric Difference HLL: " << result.at(6) << endl;
+  //   cout << "Jaccard HLL: " << ((double)result.at(3)/(double)result.at(2)) << endl;
+  //   */
+  // }
+  // auto stop = high_resolution_clock::now();
+  // auto duration = duration_cast<milliseconds>(stop - start);
+  // cout << "Time taken by function: "
+  //       << (double)duration.count()/1000.0 << " seconds" << endl;
+
+  return 0;
 }
