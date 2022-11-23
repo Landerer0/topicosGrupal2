@@ -15,7 +15,7 @@
 using namespace std;
 using namespace std::chrono;
 
-const unsigned int Buckets = 16;
+const unsigned int Buckets = pow(2,8);
 const unsigned int k = 31; //tamaño del kmer
 
 //const int numThreads = 5; // 80-31 = 49, 49%7=0 division exacta //OMP
@@ -51,7 +51,8 @@ int main(int argc, char *argv[]) {
     hll.push_back(hllAux);
     auto start = high_resolution_clock::now();
     lectura(hll.at(i),ifstream(argv[i+1]));
-    cout << "Estimacion HLL" << i+1 << ": "  << hll.at(i).estimate() << endl;
+    ull valorEstimado = hll.at(i).estimate();
+    cout << "Estimacion HLL" << i+1 << ": "  << valorEstimado << endl;
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     cout << "Tiempo ocupado por HLL" << i+1 << " "

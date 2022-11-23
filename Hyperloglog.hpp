@@ -11,8 +11,11 @@ using namespace std;
 
 class Hyperloglog{
   private:
-    //vector<uc> sketch; //6 bits por bucket
+    unsigned int option;
     sdsl::int_vector<> sketch;
+
+    vector<ull> frecuencia;
+
     unsigned int M;
     int log_m;
     double alpha_m(); //factor de correcion

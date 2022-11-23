@@ -4,21 +4,13 @@
 //vector<mutex*> bucketMutexHll; // un mutex asociado a cada bucket del sketch
 
 Hyperloglog::Hyperloglog(unsigned int M){
-  //sketch.assign(M, 0);
   this->M = M;
-  //bucketMutexHll.assign(M,new std::mutex);
   log_m = (int)ceil(log2(M)); 
   two_64 = (double)pow(2,64);
-
-  //cout << sketch << endl;
+  frecuencia.assign(M,0); // para contar las frecuencias
+  //inicializar int_vector
   sketch.resize(M);
-  // 64-log_m son los bits que cuentan la cantidad de ceros
-  // se necesitan log2(64-log_m) bits para ello
-  //sketch.width(ceil(log2(64-log_m)));
   sdsl::util::set_to_value(sketch,0); // deberia establecer todos los valores en 0
-  //cout << sketch << endl;
-  //cout << sketch.size() << endl;
-
 }
 
 Hyperloglog::~Hyperloglog(){ 
@@ -38,10 +30,8 @@ void Hyperloglog::update(string &kmer){
   // este if es debido a que en mi computador la funcion puede dar valores inadecuados para la operación
   // fue testeado y a otros compañeros la función siempre les daba el rango correcto
   if(b==0) first_one_bit = 64;
-  //bucketMutexHll.at(p)->lock();
   sketch[p] = max((uc)sketch[p], first_one_bit);
-  //sketch[p] = max(sketch[p], first_one_bit);
-  //bucketMutexHll.at(p)->unlock();
+  frecuencia.at(p)++;
 }
 
 uc Hyperloglog::bucket_value(unsigned int i){
@@ -49,6 +39,36 @@ uc Hyperloglog::bucket_value(unsigned int i){
 }
 
 ull Hyperloglog::estimate(){
+
+  sdsl::util::bit_compress(sketch);
+  //std::sort(sketch.begin(), sketch.end()); // para enc_vector
+
+  // calculo de la entropia
+  ull N = 0;
+  double entropy=0;
+  for(int i=0;i<frecuencia.size();i++) N+=frecuencia.at(i);
+  for(int i=0;i<frecuencia.size();i++){
+    double hiN=(double)frecuencia.at(i)/(double)N;
+    entropy += hiN * -log2(hiN);
+  }
+
+  cout << "Entropia: " << entropy << endl;
+
+  sdsl::enc_vector<> ev(sketch);
+  sdsl::wt_int<sdsl::rrr_vector<8>> wtint_rrr;
+  sdsl::construct_im(wtint_rrr,sketch);
+  sdsl::wt_huff<sdsl::sd_vector<>> wthuff_sd;
+  sdsl::construct_im(wthuff_sd,sketch);
+  sdsl::wm_int<> wm;
+  sdsl::construct_im(wm,sketch);
+
+  cout << "int_vector: " << size_in_mega_bytes(sketch) << endl;
+  cout << "enc_vector: " << size_in_mega_bytes(ev) << endl;
+  cout << "wt_int usando rrr_vector: " << size_in_mega_bytes(wtint_rrr) << endl;
+  cout << "wt_huff usando sd_vector: " << size_in_mega_bytes(wthuff_sd) << endl;
+  cout << "wm_int: " << size_in_mega_bytes(wm) << endl;
+
+
   // for(int i=0;i<sketch.size();i++){
   //   cout << (int)sketch.at(i) << " ";
   // }
@@ -65,6 +85,8 @@ ull Hyperloglog::estimate(){
     Z += pow(2,-(uc)sketch[i]);
     if((uc)sketch[i]==0) V++;
   }
+
+
 
   double E = (this->M * this->M * alpha_m())/Z;
   // Corrección de la estimación en caso de ser necesario
