@@ -7,7 +7,6 @@ Hyperloglog::Hyperloglog(unsigned int M){
   this->M = M;
   log_m = (int)ceil(log2(M)); 
   two_64 = (double)pow(2,64);
-  frecuencia.assign(M,0); // para contar las frecuencias
   //inicializar int_vector
   sketch.resize(M);
   sdsl::util::set_to_value(sketch,0); // deberia establecer todos los valores en 0
@@ -31,8 +30,7 @@ void Hyperloglog::update(string &kmer){
   // fue testeado y a otros compañeros la función siempre les daba el rango correcto
   if(b==0) first_one_bit = 64;
   sketch[p] = max((uc)sketch[p], first_one_bit);
-  frecuencia.at(p)++;
-}
+}       
 
 uc Hyperloglog::bucket_value(unsigned int i){
   return sketch[i];
@@ -44,12 +42,15 @@ ull Hyperloglog::estimate(){
   //std::sort(sketch.begin(), sketch.end()); // para enc_vector
 
   // calculo de la entropia
-  ull N = 0;
+  
   double entropy=0;
-  for(int i=0;i<frecuencia.size();i++) N+=frecuencia.at(i);
-  for(int i=0;i<frecuencia.size();i++){
-    double hiN=(double)frecuencia.at(i)/(double)N;
-    entropy += hiN * -log2(hiN);
+  map<int,double> freq;
+  for(int i = 0; i < log_m; i++)
+    freq[sketch[i]]++;
+
+  for(auto pair : freq){
+    double p_x = pair.second/M;
+    if(p_x > 0) entropy -= p_x * log(p_x)/log(2);
   }
 
   cout << "Entropia: " << entropy << endl;
@@ -80,13 +81,9 @@ ull Hyperloglog::estimate(){
   unsigned int V = 0;
 
   for(int i=0;i<M;i++){
-    // Z += pow(2,-sketch.at(i));
-    // if(sketch.at(i)==0) V++;
     Z += pow(2,-(uc)sketch[i]);
     if((uc)sketch[i]==0) V++;
   }
-
-
 
   double E = (this->M * this->M * alpha_m())/Z;
   // Corrección de la estimación en caso de ser necesario

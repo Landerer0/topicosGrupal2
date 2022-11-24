@@ -2,6 +2,7 @@
 #include<vector>
 #include<cmath>
 #include<mutex>
+#include<map>
 #include <sdsl/suffix_arrays.hpp>
 
 typedef unsigned long long ull;
@@ -13,9 +14,6 @@ class Hyperloglog{
   private:
     unsigned int option;
     sdsl::int_vector<> sketch;
-
-    vector<ull> frecuencia;
-
     unsigned int M;
     int log_m;
     double alpha_m(); //factor de correcion
